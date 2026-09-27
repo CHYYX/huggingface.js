@@ -2434,4 +2434,30 @@ describe.skip("InferenceClient", () => {
 		},
 		TIMEOUT,
 	);
+	describe.concurrent(
+		"Lanseq",
+		() => {
+			const client = new InferenceClient(env.HF_LANSEQ_KEY ?? "dummy");
+			HARDCODED_MODEL_INFERENCE_MAPPING["lanseq"] = {
+				"Qwen/Qwen3.8-27B": {
+					provider: "lanseq", hfModelId: "Qwen/Qwen3.8-27B", providerId: "qwen3.8-27b-int4",
+					status: "live", task: "conversational",
+				},
+			};
+			it("chatCompletion - Qwen3.8-27B", async () => {
+				const res = await client.chatCompletion({ model: "Qwen/Qwen3.8-27B", provider: "lanseq",
+					messages: [{ role: "user", content: "Complete this sentence with one word: one plus one equals" }], max_tokens: 10 });
+				expect(res.choices?.[0]?.message?.content ?? "").toMatch(/two|2/i);
+			});
+			it("chatCompletion stream - Qwen3.8-27B", async () => {
+				const stream = client.chatCompletionStream({ model: "Qwen/Qwen3.8-27B", provider: "lanseq",
+					messages: [{ role: "user", content: "Say 'this is a test'" }], max_tokens: 10, stream: true }) as AsyncGenerator<ChatCompletionStreamOutput>;
+				let fullResponse = "";
+				for await (const chunk of stream) fullResponse += chunk.choices?.[0]?.delta?.content ?? "";
+				expect(fullResponse.length).toBeGreaterThan(0);
+			});
+		},
+		TIMEOUT,
+	);
+
 });
